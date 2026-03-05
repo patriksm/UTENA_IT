@@ -7,11 +7,67 @@
     const GRID_SIZE = 20;
     const BASE_COLS = 27;
     const BASE_ROWS = 27;
-    const BASE_SPEED = 130;
-    const SPEED_DECREMENT = 4;
-    const MIN_SPEED = 55;
     const FOOD_SCORE = 10;
-    const LEVEL_THRESHOLD = 50;
+
+    // --- Difficulty Definitions ---
+    const DIFFICULTIES = {
+        easy: {
+            label: 'EASY',
+            badge: 'EZY',
+            baseSpeed: 165,
+            speedDecrement: 3,
+            minSpeed: 80,
+            scoreMultiplier: 1,
+            levelThreshold: 50,
+            wallWrap: true,      // snake wraps through walls instead of dying
+            obstacleCount: 0,
+            foodTimeout: 0,      // food never disappears
+            color: '#00ff88',
+            glowColor: 'rgba(0, 255, 136, 0.45)',
+        },
+        medium: {
+            label: 'MEDIUM',
+            badge: 'MED',
+            baseSpeed: 130,
+            speedDecrement: 4,
+            minSpeed: 60,
+            scoreMultiplier: 2,
+            levelThreshold: 50,
+            wallWrap: false,
+            obstacleCount: 0,
+            foodTimeout: 0,
+            color: '#ffe600',
+            glowColor: 'rgba(255, 230, 0, 0.45)',
+        },
+        hard: {
+            label: 'HARD',
+            badge: 'HRD',
+            baseSpeed: 100,
+            speedDecrement: 5,
+            minSpeed: 45,
+            scoreMultiplier: 3,
+            levelThreshold: 40,
+            wallWrap: false,
+            obstacleCount: 6,    // static neon barriers on the grid
+            foodTimeout: 0,
+            color: '#ff8800',
+            glowColor: 'rgba(255, 136, 0, 0.45)',
+        },
+        extreme: {
+            label: 'XTREME',
+            badge: 'XTR',
+            baseSpeed: 70,
+            speedDecrement: 5,
+            minSpeed: 28,
+            scoreMultiplier: 5,
+            levelThreshold: 30,
+            wallWrap: false,
+            obstacleCount: 10,   // more barriers
+            foodTimeout: 8000,   // food disappears after 8 seconds
+            color: '#ff0055',
+            glowColor: 'rgba(255, 0, 85, 0.45)',
+        },
+    };
 
     // Dynamic grid sizing
     let COLS = BASE_COLS;
@@ -50,18 +106,18 @@
     const canvasFrame = document.querySelector('.canvas-frame');
     const mobileControls = document.getElementById('mobileControls');
     const mobilePause = document.getElementById('mobilePause');
+    const diffBadgeEl = document.getElementById('diffBadge');
+    const diffPillsEl = document.getElementById('diffPills');
 
     // --- Responsive canvas sizing ---
     function resizeCanvas() {
         const wrapper = document.querySelector('.game-wrapper');
         const wrapperStyle = getComputedStyle(wrapper);
         const paddingX = parseFloat(wrapperStyle.paddingLeft) + parseFloat(wrapperStyle.paddingRight);
-        const framePadding = 12; // 6px padding on each side of canvas-frame
+        const framePadding = 12;
         const frameBorder = 2;
         const availableWidth = wrapper.clientWidth - paddingX - framePadding - frameBorder;
 
-        // Calculate grid size that fits the available width
-        // Keep grid count the same, scale the grid cell size
         const maxCanvasSize = Math.min(availableWidth, BASE_COLS * GRID_SIZE);
         const cellSize = Math.floor(maxCanvasSize / BASE_COLS);
         const actualSize = cellSize * BASE_COLS;
@@ -74,13 +130,9 @@
         canvas.width = CANVAS_W;
         canvas.height = CANVAS_H;
 
-        // Redraw if game is initialized
-        if (snake) {
-            draw();
-        }
+        if (snake) draw();
     }
 
-    // Helper to get current cell size
     function getCellSize() {
         return CANVAS_W / COLS;
     }
@@ -95,9 +147,28 @@
     let particles = [];
     let foodPulse = 0;
     let pauseBanner = null;
+    let obstacles = [];
+    let foodTimeoutId = null;
+    let foodSpawnTime = 0;
 
-    // Load high score
-    highScore = parseInt(localStorage.getItem('neonSerpentHigh') || '0', 10);
+    // --- Difficulty State ---
+    let selectedDifficulty = 'medium';
+
+    // Migrate old unified high score to medium slot (backward compat)
+    const legacyHigh = localStorage.getItem('neonSerpentHigh');
+    if (legacyHigh && !localStorage.getItem('neonSerpentHigh_medium')) {
+        localStorage.setItem('neonSerpentHigh_medium', legacyHigh);
+    }
+
+    function getHighScore(diff) {
+        return parseInt(localStorage.getItem(`neonSerpentHigh_${diff}`) || '0', 10);
+    }
+
+    function setHighScore(diff, val) {
+        localStorage.setItem(`neonSerpentHigh_${diff}`, val.toString());
+    }
+
+    highScore = getHighScore(selectedDifficulty);
     highScoreEl.textContent = highScore;
 
     // --- Directions ---
@@ -114,6 +185,7 @@
 
     // --- Init / Reset ---
     function initGame() {
+        const diff = DIFFICULTIES[selectedDifficulty];
         const midX = Math.floor(COLS / 2);
         const midY = Math.floor(ROWS / 2);
         snake = [
@@ -125,11 +197,20 @@
         nextDirection = DIR.RIGHT;
         score = 0;
         level = 1;
-        speed = BASE_SPEED;
+        speed = diff.baseSpeed;
         particles = [];
         foodPulse = 0;
+        obstacles = [];
+        clearFoodTimer();
+
+        if (diff.obstacleCount > 0) {
+            spawnObstacles(diff.obstacleCount);
+        }
+
+        highScore = getHighScore(selectedDifficulty);
         updateUI();
         spawnFood();
+        updateDifficultyBadge();
     }
 
     function updateUI() {
@@ -144,9 +225,55 @@
         scoreEl.classList.add('score-pop');
     }
 
+    function updateDifficultyBadge() {
+        const diff = DIFFICULTIES[selectedDifficulty];
+        diffBadgeEl.textContent = diff.badge;
+        diffBadgeEl.style.color = diff.color;
+        diffBadgeEl.style.textShadow = `0 0 10px ${diff.color}88, 0 0 30px ${diff.color}33`;
+    }
+
+    // --- Obstacle spawning ---
+    function spawnObstacles(count) {
+        const midX = Math.floor(COLS / 2);
+        const midY = Math.floor(ROWS / 2);
+
+        // Protect a clear zone around the snake's starting position
+        const safeZone = new Set();
+        for (let dx = -5; dx <= 5; dx++) {
+            for (let dy = -3; dy <= 3; dy++) {
+                safeZone.add(`${midX + dx},${midY + dy}`);
+            }
+        }
+
+        let placed = 0;
+        let attempts = 0;
+        while (placed < count && attempts < 500) {
+            const x = Math.floor(Math.random() * COLS);
+            const y = Math.floor(Math.random() * ROWS);
+            const key = `${x},${y}`;
+            if (!safeZone.has(key) && !obstacles.find(o => o.x === x && o.y === y)) {
+                obstacles.push({ x, y });
+                placed++;
+            }
+            attempts++;
+        }
+    }
+
     // --- Food ---
+    function clearFoodTimer() {
+        if (foodTimeoutId) {
+            clearTimeout(foodTimeoutId);
+            foodTimeoutId = null;
+        }
+        foodSpawnTime = 0;
+    }
+
     function spawnFood() {
+        clearFoodTimer();
+
         const occupied = new Set(snake.map(s => `${s.x},${s.y}`));
+        obstacles.forEach(o => occupied.add(`${o.x},${o.y}`));
+
         let pos;
         do {
             pos = {
@@ -155,6 +282,17 @@
             };
         } while (occupied.has(`${pos.x},${pos.y}`));
         food = pos;
+        foodPulse = 0;
+        foodSpawnTime = Date.now();
+
+        const diff = DIFFICULTIES[selectedDifficulty];
+        if (diff.foodTimeout > 0 && gameState === 'playing') {
+            foodTimeoutId = setTimeout(() => {
+                if (gameState === 'playing') {
+                    spawnFood();
+                }
+            }, diff.foodTimeout);
+        }
     }
 
     // --- Particles ---
@@ -185,9 +323,7 @@
             p.vx *= 0.96;
             p.vy *= 0.96;
             p.life--;
-            if (p.life <= 0) {
-                particles.splice(i, 1);
-            }
+            if (p.life <= 0) particles.splice(i, 1);
         }
     }
 
@@ -240,6 +376,47 @@
         ctx.restore();
     }
 
+    function drawObstacles() {
+        if (obstacles.length === 0) return;
+        const cell = getCellSize();
+        const diff = DIFFICULTIES[selectedDifficulty];
+        const p = Math.max(2, Math.floor(cell * 0.12));
+
+        obstacles.forEach(obs => {
+            const ox = obs.x * cell + p;
+            const oy = obs.y * cell + p;
+            const s = cell - p * 2;
+
+            ctx.save();
+
+            // Filled background
+            ctx.globalAlpha = 0.14;
+            ctx.fillStyle = diff.color;
+            ctx.fillRect(ox, oy, s, s);
+
+            // Glowing border
+            ctx.globalAlpha = 0.9;
+            ctx.strokeStyle = diff.color;
+            ctx.lineWidth = 1.5;
+            ctx.shadowColor = diff.color;
+            ctx.shadowBlur = 10;
+            ctx.strokeRect(ox + 0.5, oy + 0.5, s - 1, s - 1);
+
+            // Inner X cross
+            ctx.globalAlpha = 0.55;
+            ctx.lineWidth = 1;
+            ctx.shadowBlur = 4;
+            ctx.beginPath();
+            ctx.moveTo(ox + 4, oy + 4);
+            ctx.lineTo(ox + s - 4, oy + s - 4);
+            ctx.moveTo(ox + s - 4, oy + 4);
+            ctx.lineTo(ox + 4, oy + s - 4);
+            ctx.stroke();
+
+            ctx.restore();
+        });
+    }
+
     function drawFood() {
         const cell = getCellSize();
         foodPulse += 0.08;
@@ -278,25 +455,52 @@
         ctx.arc(cx - baseR * 0.3, cy - baseR * 0.3, 2, 0, Math.PI * 2);
         ctx.fill();
         ctx.restore();
+
+        // Countdown arc for extreme mode
+        const diff = DIFFICULTIES[selectedDifficulty];
+        if (diff.foodTimeout > 0 && foodSpawnTime > 0) {
+            const elapsed = Date.now() - foodSpawnTime;
+            const progress = Math.max(0, 1 - elapsed / diff.foodTimeout);
+            const arcR = baseR + 7;
+            const isUrgent = progress < 0.3;
+
+            // Track ring
+            ctx.save();
+            ctx.strokeStyle = 'rgba(255, 0, 85, 0.18)';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(cx, cy, arcR, 0, Math.PI * 2);
+            ctx.stroke();
+
+            // Progress arc
+            if (progress > 0) {
+                ctx.strokeStyle = diff.color;
+                ctx.shadowColor = diff.color;
+                ctx.shadowBlur = isUrgent ? 14 : 6;
+                ctx.lineWidth = 2;
+                ctx.globalAlpha = isUrgent ? 0.5 + Math.abs(Math.sin(Date.now() * 0.008)) * 0.5 : 1;
+                ctx.lineCap = 'round';
+                ctx.beginPath();
+                ctx.arc(cx, cy, arcR, -Math.PI / 2, -Math.PI / 2 + progress * Math.PI * 2);
+                ctx.stroke();
+            }
+            ctx.restore();
+        }
     }
 
     function drawSnake() {
         const cell = getCellSize();
         const len = snake.length;
         snake.forEach((seg, i) => {
-            const t = i / Math.max(len - 1, 1); // 0=head, 1=tail
+            const t = i / Math.max(len - 1, 1);
             const cx = seg.x * cell + cell / 2;
             const cy = seg.y * cell + cell / 2;
 
-            // Interpolate color from head (cyan) to tail (dark cyan)
-            const r = Math.round(0 + t * 0);
             const g = Math.round(240 - t * 120);
             const b = Math.round(255 - t * 135);
-            const color = `rgb(${r}, ${g}, ${b})`;
-
+            const color = `rgb(0, ${g}, ${b})`;
             const radius = cell / 2 - (i === 0 ? 1 : 2 + t * 1);
 
-            // Glow for head and near-head segments
             if (i < 4) {
                 ctx.save();
                 ctx.shadowColor = COLORS.snakeGlow;
@@ -308,7 +512,6 @@
                 ctx.restore();
             }
 
-            // Body segment
             ctx.save();
             ctx.fillStyle = color;
             ctx.shadowColor = color;
@@ -318,9 +521,7 @@
             ctx.fill();
             ctx.restore();
 
-            // Head details
             if (i === 0) {
-                // Eyes
                 const eyeOffset = cell * 0.2;
                 const eyeR = cell * 0.125;
                 let e1x, e1y, e2x, e2y;
@@ -351,7 +552,6 @@
                 ctx.fill();
                 ctx.restore();
 
-                // Pupils
                 ctx.save();
                 ctx.fillStyle = COLORS.bg;
                 const pupilR = cell * 0.06;
@@ -365,7 +565,6 @@
             }
         });
 
-        // Draw connection lines between segments for smoother look
         if (len > 1) {
             ctx.save();
             ctx.lineWidth = cell - 6;
@@ -393,12 +592,12 @@
     }
 
     function draw() {
-        // Clear
         ctx.fillStyle = COLORS.bg;
         ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
 
         drawGrid();
         drawBorderGlow();
+        drawObstacles();
         drawFood();
         drawSnake();
         drawParticles();
@@ -406,18 +605,22 @@
 
     // --- Game Logic ---
     function step() {
-        // Apply direction
+        const diff = DIFFICULTIES[selectedDifficulty];
         direction = nextDirection;
 
-        // Move head
         const head = { ...snake[0] };
         head.x += direction.x;
         head.y += direction.y;
 
-        // Wall collision
-        if (head.x < 0 || head.x >= COLS || head.y < 0 || head.y >= ROWS) {
-            gameOver();
-            return;
+        // Wall handling — wrap or collide depending on difficulty
+        if (diff.wallWrap) {
+            head.x = ((head.x % COLS) + COLS) % COLS;
+            head.y = ((head.y % ROWS) + ROWS) % ROWS;
+        } else {
+            if (head.x < 0 || head.x >= COLS || head.y < 0 || head.y >= ROWS) {
+                gameOver();
+                return;
+            }
         }
 
         // Self collision
@@ -428,18 +631,24 @@
             }
         }
 
+        // Obstacle collision
+        for (const obs of obstacles) {
+            if (obs.x === head.x && obs.y === head.y) {
+                gameOver();
+                return;
+            }
+        }
+
         snake.unshift(head);
 
-        // Eat food?
         if (head.x === food.x && head.y === food.y) {
-            score += FOOD_SCORE;
+            score += FOOD_SCORE * diff.scoreMultiplier;
             emitParticles(food.x, food.y, 18);
 
-            // Level up
-            const newLevel = Math.floor(score / LEVEL_THRESHOLD) + 1;
+            const newLevel = Math.floor(score / (diff.levelThreshold * diff.scoreMultiplier)) + 1;
             if (newLevel > level) {
                 level = newLevel;
-                speed = Math.max(MIN_SPEED, BASE_SPEED - (level - 1) * SPEED_DECREMENT);
+                speed = Math.max(diff.minSpeed, diff.baseSpeed - (level - 1) * diff.speedDecrement);
                 clearInterval(gameLoop);
                 gameLoop = setInterval(tick, speed);
             }
@@ -468,40 +677,45 @@
         removePauseBanner();
         draw();
         gameLoop = setInterval(tick, speed);
+
+        // Restart food timeout if extreme
+        const diff = DIFFICULTIES[selectedDifficulty];
+        if (diff.foodTimeout > 0) {
+            foodTimeoutId = setTimeout(() => {
+                if (gameState === 'playing') spawnFood();
+            }, diff.foodTimeout);
+            foodSpawnTime = Date.now();
+        }
     }
 
     function gameOver() {
         gameState = 'over';
         clearInterval(gameLoop);
+        clearFoodTimer();
 
-        // Flash effect
         ctx.save();
         ctx.fillStyle = 'rgba(255, 0, 170, 0.15)';
         ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
         ctx.restore();
 
-        // Emit death particles from head
         if (snake.length > 0) {
             emitParticles(snake[0].x, snake[0].y, 35);
         }
 
-        // Animate remaining particles
         const deathAnim = setInterval(() => {
             updateParticles();
             draw();
             if (particles.length === 0) clearInterval(deathAnim);
         }, 30);
 
-        // Check high score
         let isNewHigh = false;
         if (score > highScore) {
             highScore = score;
-            localStorage.setItem('neonSerpentHigh', highScore.toString());
+            setHighScore(selectedDifficulty, highScore);
             highScoreEl.textContent = highScore;
             isNewHigh = true;
         }
 
-        // Show overlay after brief delay
         setTimeout(() => {
             finalScoreEl.textContent = score;
             if (isNewHigh && score > 0) {
@@ -509,6 +723,7 @@
             } else {
                 newHighScoreEl.classList.add('hidden');
             }
+            syncDiffUI();
             gameOverOverlay.classList.remove('hidden');
         }, 600);
     }
@@ -517,10 +732,19 @@
         if (gameState === 'playing') {
             gameState = 'paused';
             clearInterval(gameLoop);
+            clearFoodTimer();
             showPauseBanner();
         } else if (gameState === 'paused') {
             gameState = 'playing';
             removePauseBanner();
+            // Restart food timeout fresh on resume
+            const diff = DIFFICULTIES[selectedDifficulty];
+            if (diff.foodTimeout > 0) {
+                foodSpawnTime = Date.now();
+                foodTimeoutId = setTimeout(() => {
+                    if (gameState === 'playing') spawnFood();
+                }, diff.foodTimeout);
+            }
             gameLoop = setInterval(tick, speed);
         }
     }
@@ -540,11 +764,31 @@
         }
     }
 
+    // --- Difficulty UI Sync ---
+    function setDifficulty(key) {
+        selectedDifficulty = key;
+        syncDiffUI();
+        // Update high score display to the selected difficulty
+        highScore = getHighScore(selectedDifficulty);
+        highScoreEl.textContent = highScore;
+        updateDifficultyBadge();
+    }
+
+    function syncDiffUI() {
+        // Sync start overlay difficulty buttons
+        document.querySelectorAll('.diff-btn[data-diff]').forEach(btn => {
+            btn.classList.toggle('diff-active', btn.dataset.diff === selectedDifficulty);
+        });
+        // Sync game over pills
+        document.querySelectorAll('.diff-pill[data-diff]').forEach(pill => {
+            pill.classList.toggle('diff-active', pill.dataset.diff === selectedDifficulty);
+        });
+    }
+
     // --- Input ---
     document.addEventListener('keydown', (e) => {
         const key = e.key.toLowerCase();
 
-        // Space to start/restart
         if (key === ' ' || key === 'enter') {
             e.preventDefault();
             if (gameState === 'idle' || gameState === 'over') {
@@ -553,7 +797,6 @@
             }
         }
 
-        // Pause
         if (key === 'p') {
             if (gameState === 'playing' || gameState === 'paused') {
                 togglePause();
@@ -561,14 +804,13 @@
             }
         }
 
-        // Movement
         if (gameState !== 'playing') return;
 
         let newDir = null;
         switch (key) {
-            case 'arrowup': case 'w': newDir = DIR.UP; break;
-            case 'arrowdown': case 's': newDir = DIR.DOWN; break;
-            case 'arrowleft': case 'a': newDir = DIR.LEFT; break;
+            case 'arrowup':  case 'w': newDir = DIR.UP;    break;
+            case 'arrowdown': case 's': newDir = DIR.DOWN;  break;
+            case 'arrowleft': case 'a': newDir = DIR.LEFT;  break;
             case 'arrowright': case 'd': newDir = DIR.RIGHT; break;
         }
 
@@ -596,7 +838,7 @@
         const absDx = Math.abs(dx);
         const absDy = Math.abs(dy);
 
-        if (Math.max(absDx, absDy) < 20) return; // too small
+        if (Math.max(absDx, absDy) < 20) return;
 
         let newDir;
         if (absDx > absDy) {
@@ -618,7 +860,6 @@
                 e.preventDefault();
                 const dir = btn.getAttribute('data-dir');
 
-                // If game hasn't started, start it
                 if (gameState === 'idle' || gameState === 'over') {
                     startGame();
                     return;
@@ -628,9 +869,9 @@
 
                 let newDir = null;
                 switch (dir) {
-                    case 'up': newDir = DIR.UP; break;
-                    case 'down': newDir = DIR.DOWN; break;
-                    case 'left': newDir = DIR.LEFT; break;
+                    case 'up':    newDir = DIR.UP;    break;
+                    case 'down':  newDir = DIR.DOWN;  break;
+                    case 'left':  newDir = DIR.LEFT;  break;
                     case 'right': newDir = DIR.RIGHT; break;
                 }
 
@@ -640,7 +881,6 @@
             }, { passive: false });
         });
 
-        // Mobile pause button
         if (mobilePause) {
             mobilePause.addEventListener('touchstart', (e) => {
                 e.preventDefault();
@@ -650,6 +890,15 @@
             }, { passive: false });
         }
     }
+
+    // --- Difficulty button click handlers ---
+    document.querySelectorAll('.diff-btn[data-diff]').forEach(btn => {
+        btn.addEventListener('click', () => setDifficulty(btn.dataset.diff));
+    });
+
+    document.querySelectorAll('.diff-pill[data-diff]').forEach(pill => {
+        pill.addEventListener('click', () => setDifficulty(pill.dataset.diff));
+    });
 
     // --- Buttons ---
     startBtn.addEventListener('click', startGame);
@@ -669,6 +918,8 @@
 
     // --- Initial State ---
     gameState = 'idle';
+    syncDiffUI();
+    updateDifficultyBadge();
     resizeCanvas();
     initGame();
     draw();

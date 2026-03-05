@@ -14,6 +14,12 @@
     --magenta-glow: 0 0 12px #ff00aa88, 0 0 40px #ff00aa33;
     --yellow: #ffe600;
     --yellow-glow: 0 0 10px #ffe60088;
+    --green: #00ff88;
+    --green-glow: 0 0 12px #00ff8888, 0 0 40px #00ff8833;
+    --orange: #ff8800;
+    --orange-glow: 0 0 12px #ff880088, 0 0 40px #ff880033;
+    --red: #ff0055;
+    --red-glow: 0 0 12px #ff005588, 0 0 40px #ff005533;
     --text: #d0d8f0;
     --text-dim: #5a6080;
     --grid-line: rgba(0, 240, 255, 0.04);
@@ -276,6 +282,13 @@ body::after {
     text-shadow: var(--yellow-glow);
 }
 
+.stat-value.mode {
+    font-size: 0.75rem;
+    letter-spacing: 0.1em;
+    min-width: 36px;
+    transition: color 0.3s ease, text-shadow 0.3s ease;
+}
+
 .stat-divider {
     width: 1px;
     height: 28px;
@@ -332,6 +345,7 @@ canvas#game {
     border-radius: 8px;
     z-index: 10;
     animation: fadeIn 0.3s ease;
+    overflow-y: auto;
 }
 
 .overlay.hidden {
@@ -348,9 +362,150 @@ canvas#game {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 18px;
+    gap: 14px;
     padding: 16px;
+    width: 100%;
+    max-width: 420px;
 }
+
+/* === Difficulty Selector (Start Overlay) === */
+.diff-selector {
+    width: 100%;
+}
+
+.diff-heading {
+    font-family: var(--font-mono);
+    font-size: 0.58rem;
+    letter-spacing: 0.3em;
+    color: var(--text-dim);
+    text-align: center;
+    margin-bottom: 10px;
+}
+
+.diff-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+}
+
+.diff-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 3px;
+    padding: 10px 13px;
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-align: left;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+}
+
+.diff-btn:hover:not(.diff-active) {
+    transform: translateY(-1px);
+}
+
+.diff-num {
+    font-family: var(--font-mono);
+    font-size: 0.5rem;
+    color: var(--text-dim);
+    letter-spacing: 0.2em;
+    transition: color 0.2s ease;
+}
+
+.diff-name {
+    font-family: var(--font-display);
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    color: var(--text);
+    transition: color 0.2s ease, text-shadow 0.2s ease;
+}
+
+.diff-desc {
+    font-family: var(--font-mono);
+    font-size: 0.52rem;
+    color: var(--text-dim);
+    letter-spacing: 0.03em;
+    line-height: 1.3;
+}
+
+/* EASY */
+.diff-btn[data-diff="easy"]:hover:not(.diff-active) { border-color: rgba(0, 255, 136, 0.3); }
+.diff-btn[data-diff="easy"].diff-active {
+    border-color: var(--green);
+    background: rgba(0, 255, 136, 0.07);
+    box-shadow: 0 0 14px rgba(0, 255, 136, 0.22), inset 0 0 10px rgba(0, 255, 136, 0.04);
+}
+.diff-btn[data-diff="easy"].diff-active .diff-name { color: var(--green); text-shadow: var(--green-glow); }
+.diff-btn[data-diff="easy"].diff-active .diff-num  { color: rgba(0, 255, 136, 0.55); }
+
+/* MEDIUM */
+.diff-btn[data-diff="medium"]:hover:not(.diff-active) { border-color: rgba(255, 230, 0, 0.3); }
+.diff-btn[data-diff="medium"].diff-active {
+    border-color: var(--yellow);
+    background: rgba(255, 230, 0, 0.07);
+    box-shadow: 0 0 14px rgba(255, 230, 0, 0.22), inset 0 0 10px rgba(255, 230, 0, 0.04);
+}
+.diff-btn[data-diff="medium"].diff-active .diff-name { color: var(--yellow); text-shadow: var(--yellow-glow); }
+.diff-btn[data-diff="medium"].diff-active .diff-num  { color: rgba(255, 230, 0, 0.55); }
+
+/* HARD */
+.diff-btn[data-diff="hard"]:hover:not(.diff-active) { border-color: rgba(255, 136, 0, 0.3); }
+.diff-btn[data-diff="hard"].diff-active {
+    border-color: var(--orange);
+    background: rgba(255, 136, 0, 0.07);
+    box-shadow: 0 0 14px rgba(255, 136, 0, 0.22), inset 0 0 10px rgba(255, 136, 0, 0.04);
+}
+.diff-btn[data-diff="hard"].diff-active .diff-name { color: var(--orange); text-shadow: var(--orange-glow); }
+.diff-btn[data-diff="hard"].diff-active .diff-num  { color: rgba(255, 136, 0, 0.55); }
+
+/* EXTREME */
+.diff-btn[data-diff="extreme"]:hover:not(.diff-active) { border-color: rgba(255, 0, 85, 0.3); }
+.diff-btn[data-diff="extreme"].diff-active {
+    border-color: var(--red);
+    background: rgba(255, 0, 85, 0.07);
+    box-shadow: 0 0 14px rgba(255, 0, 85, 0.22), inset 0 0 10px rgba(255, 0, 85, 0.04);
+}
+.diff-btn[data-diff="extreme"].diff-active .diff-name { color: var(--red); text-shadow: var(--red-glow); }
+.diff-btn[data-diff="extreme"].diff-active .diff-num  { color: rgba(255, 0, 85, 0.55); }
+
+/* === Difficulty Pills (Game Over Overlay) === */
+.diff-pills {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.diff-pill {
+    font-family: var(--font-display);
+    font-size: 0.55rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    padding: 5px 11px;
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    cursor: pointer;
+    color: var(--text-dim);
+    transition: all 0.2s ease;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+}
+
+.diff-pill[data-diff="easy"].diff-active    { border-color: var(--green);  color: var(--green);  background: rgba(0, 255, 136, 0.08); box-shadow: 0 0 10px rgba(0, 255, 136, 0.2); }
+.diff-pill[data-diff="medium"].diff-active  { border-color: var(--yellow); color: var(--yellow); background: rgba(255, 230, 0, 0.08);  box-shadow: 0 0 10px rgba(255, 230, 0, 0.2); }
+.diff-pill[data-diff="hard"].diff-active    { border-color: var(--orange); color: var(--orange); background: rgba(255, 136, 0, 0.08);  box-shadow: 0 0 10px rgba(255, 136, 0, 0.2); }
+.diff-pill[data-diff="extreme"].diff-active { border-color: var(--red);    color: var(--red);    background: rgba(255, 0, 85, 0.08);   box-shadow: 0 0 10px rgba(255, 0, 85, 0.2); }
+
+.diff-pill[data-diff="easy"]:hover:not(.diff-active)    { border-color: rgba(0, 255, 136, 0.3);  color: var(--text); }
+.diff-pill[data-diff="medium"]:hover:not(.diff-active)  { border-color: rgba(255, 230, 0, 0.3);  color: var(--text); }
+.diff-pill[data-diff="hard"]:hover:not(.diff-active)    { border-color: rgba(255, 136, 0, 0.3);  color: var(--text); }
+.diff-pill[data-diff="extreme"]:hover:not(.diff-active) { border-color: rgba(255, 0, 85, 0.3);   color: var(--text); }
 
 .snake-icon {
     animation: floatBob 3s ease-in-out infinite;
@@ -922,6 +1077,36 @@ canvas#game {
 
     .credit-inner {
         gap: 8px;
+    }
+
+    /* Compact diff selector on very small screens */
+    .snake-icon {
+        display: none;
+    }
+
+    .diff-btn {
+        padding: 8px 10px;
+    }
+
+    .diff-name {
+        font-size: 0.62rem;
+    }
+
+    .diff-desc {
+        font-size: 0.48rem;
+    }
+
+    .diff-grid {
+        gap: 6px;
+    }
+
+    .stats-bar {
+        gap: 10px;
+    }
+
+    .stat-value.mode {
+        font-size: 0.65rem;
+        min-width: 28px;
     }
 }
 
