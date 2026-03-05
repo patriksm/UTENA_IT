@@ -1,0 +1,66 @@
+/* ============================================
+   NEON SERPENT — Mobile D-Pad Controls
+   ============================================ */
+
+.mobile-controls {
+    display: none;
+    width: 180px;
+    height: 180px;
+    position: relative;
+    margin: 0 auto;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+}
+
+.dpad-btn {
+    position: absolute;
+    width: 56px;
+    height: 56px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--bg-panel);
+    color: var(--text-dim);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+}
+
+.dpad-btn:active {
+    background: rgba(0, 240, 255, 0.15);
+    border-color: var(--cyan);
+    color: var(--cyan);
+    box-shadow: var(--cyan-glow);
+    transform: scale(0.92);
+}
+
+.dpad-up    { top: 0;    left: 50%; transform: translateX(-50%); }
+.dpad-down  { bottom: 0; left: 50%; transform: translateX(-50%); }
+.dpad-left  { left: 0;   top: 50%;  transform: translateY(-50%); }
+.dpad-right { right: 0;  top: 50%;  transform: translateY(-50%); }
+
+.dpad-up:active    { transform: translateX(-50%) scale(0.92); }
+.dpad-down:active  { transform: translateX(-50%) scale(0.92); }
+.dpad-left:active  { transform: translateY(-50%) scale(0.92); }
+.dpad-right:active { transform: translateY(-50%) scale(0.92); }
+
+.dpad-center {
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    border-color: var(--magenta-dim);
+}
+
+.dpad-center:active {
+    background: rgba(255, 0, 170, 0.15);
+    border-color: var(--magenta);
+    color: var(--magenta);
+    box-shadow: var(--magenta-glow);
+    transform: translate(-50%, -50%) scale(0.92);
+}
