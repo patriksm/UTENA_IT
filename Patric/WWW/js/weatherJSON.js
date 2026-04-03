@@ -19,6 +19,7 @@ request.send();
 
 function displayWeather(jsonOBJ) {
     var myH1 = document.createElement('H1');
-    myH1.textContent = "Temperature in " + jsonOBJ['location'] + " is " + " C";
+    // myH1.textContent = "Temperature in " + jsonOBJ['location'].name + " is " + jsonOBJ['current'].temp_c + String.fromCharCode(176) + "C";
+    myH1.textContent = `Temperature in ${jsonOBJ['location'].name} is ${jsonOBJ['current'].temp_c} ${String.fromCharCode(176)}C`; //nicer format
     myBlock.appendChild(myH1)
 }
