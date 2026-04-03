@@ -18,5 +18,5 @@
     width: 200px;
     height: 200px;
     background-color: aquamarine;
-    transform: translate3d(500px, 300px, 0px);
+    transform: translate3d(500px, 300px, 0px) rotateX(0deg) rotateY(0deg) rotateZ(0deg);
 }
