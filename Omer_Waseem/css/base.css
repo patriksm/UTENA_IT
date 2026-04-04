@@ -1,0 +1,103 @@
+/* ============================================
+   NEON SERPENT — Design Tokens & Base Styles
+   ============================================ */
+
+:root {
+    --bg-deep:    #06060f;
+    --bg-panel:   #0c0c1e;
+    --bg-surface: #111128;
+
+    --cyan:         #00f0ff;
+    --cyan-dim:     #00f0ff55;
+    --cyan-glow:    0 0 12px #00f0ff88, 0 0 40px #00f0ff33;
+
+    --magenta:      #ff00aa;
+    --magenta-dim:  #ff00aa55;
+    --magenta-glow: 0 0 12px #ff00aa88, 0 0 40px #ff00aa33;
+
+    --yellow:       #ffe600;
+    --yellow-glow:  0 0 10px #ffe60088;
+
+    --green:        #00ff88;
+    --green-glow:   0 0 12px #00ff8888, 0 0 40px #00ff8833;
+
+    --orange:       #ff8800;
+    --orange-glow:  0 0 12px #ff880088, 0 0 40px #ff880033;
+
+    --red:          #ff0055;
+    --red-glow:     0 0 12px #ff005588, 0 0 40px #ff005533;
+
+    --text:         #d0d8f0;
+    --text-dim:     #5a6080;
+    --grid-line:    rgba(0, 240, 255, 0.04);
+    --border:       rgba(0, 240, 255, 0.12);
+
+    --font-display: 'Orbitron', sans-serif;
+    --font-mono:    'Share Tech Mono', monospace;
+}
+
+/* === Reset === */
+*, *::before, *::after {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html {
+    font-size: 16px;
+}
+
+body {
+    background: var(--bg-deep);
+    color: var(--text);
+    font-family: var(--font-mono);
+    min-height: 100vh;
+    min-height: 100dvh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow-x: hidden;
+    overflow-y: auto;
+    position: relative;
+    padding-top: 44px;
+}
+
+/* === CRT Scanline overlay === */
+.scanlines {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 1000;
+    background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(0, 0, 0, 0.08) 2px,
+        rgba(0, 0, 0, 0.08) 4px
+    );
+}
+
+/* === Background ambient glows === */
+body::before {
+    content: '';
+    position: fixed;
+    width: 600px;
+    height: 600px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(0, 240, 255, 0.06) 0%, transparent 70%);
+    top: -150px;
+    right: -150px;
+    pointer-events: none;
+}
+
+body::after {
+    content: '';
+    position: fixed;
+    width: 500px;
+    height: 500px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(255, 0, 170, 0.05) 0%, transparent 70%);
+    bottom: -100px;
+    left: -100px;
+    pointer-events: none;
+}
