@@ -30,3 +30,13 @@ function drawSquares(map) {
 }
 
 drawSquares(lvl_one_map);
+
+let dispVector = { x: 0, y: 0, z: 0 };
+let vel = 40;
+
+function update() {
+    myWolrd.style.transform = `translate3d(${dispVector.y}px, ${dispVector.z}px, ${dispVector.x}px)`;
+    dispVector.x += vel;
+}
+
+let myGame = setInterval(update, 100);
