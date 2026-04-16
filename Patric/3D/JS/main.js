@@ -32,19 +32,32 @@ function drawSquares(map) {
 drawSquares(lvl_one_map);
 
 let dispVector = { x: 0, y: 0, z: 0 };
-let vel = 0;
+let velX = velY = 0;
 
-document.addEventListener("keydown", (e)=>{
-    vel = 10;
+document.addEventListener("keydown", (e) => {
+    if (e.code == "KeyW") {
+        velX = 30;
+    }
+    if (e.code == "KeyS") {
+        velX = -30;s
+    }
+    if (e.code == "KeyD") {
+        velY = -30;
+    }
+    if (e.code == "KeyA") {
+        velY = +30;
+    }
 });
 
-document.addEventListener("keyup", (e)=>{
-    vel = 0;
+document.addEventListener("keyup", (e) => {
+    velX = 0;
+    velY = 0;
 });
 
 function update() {
     myWolrd.style.transform = `translate3d(${dispVector.y}px, ${dispVector.z}px, ${dispVector.x}px)`;
-    dispVector.x += vel;
+    dispVector.x += velX;
+    dispVector.y += velY;
 }
 
 let myGame = setInterval(update, 100);
