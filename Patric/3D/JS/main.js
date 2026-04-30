@@ -4,7 +4,8 @@ let lvl_one_map = [
     { id: "floor", w: 1000, h: 1000, color: "grey", x: 0, y: 0, z: -100, rx: 0, ry: 90, rz: 0 },
     { id: "hinter wall", w: 1000, h: 200, color: "aquamarine", x: -500, y: 0, z: 0, rx: 0, ry: 0, rz: 0 },
     { id: "right wall", w: 1000, h: 200, color: "#ff0086", x: 0, y: 500, z: 0, rx: 0, ry: 0, rz: 90 },
-    { id: "left wall", w: 1000, h: 200, color: "#17c97d", x: 0, y: -500, z: 0, rx: 0, ry: 0, rz: 90 }
+    { id: "left wall", w: 1000, h: 200, color: "#17c97d", x: 0, y: -500, z: 0, rx: 0, ry: 0, rz: 90 },
+    { id: "central_item", w: 10, h: 10, color: "black", x: -10, y: 0, z: 0, rx: 0, ry: 0, rz: 0 }
 ];
 
 function drawSquares(map) {
@@ -32,32 +33,65 @@ function drawSquares(map) {
 drawSquares(lvl_one_map);
 
 let dispVector = { x: 0, y: 0, z: 0 };
-let velX = velY = 0;
+let rot = { x: 0, y: 0, z: 0 };
+let velX = velY = velZ = 5;
+let mouseY = mouseZ = 0;
+let dt = 1;
+
+function player(x, y, z, rx, ry, rz) { //constuctor defining object of the class player
+    this.x = x;
+    this.y = y;
+    this.z = z;
+    this.rx = rx;
+    this.ry = ry;
+    this.rz = rz;
+}
+
+let pawn = new player(0, 0, 0, 0, 0, 0); // here new instance of the class player is created and it is called pawn
 
 document.addEventListener("keydown", (e) => {
     if (e.code == "KeyW") {
-        velX = 30;
+        dispVector.x = -velX * dt;
     }
     if (e.code == "KeyS") {
-        velX = -30;s
+        dispVector.x = velX * dt;
     }
     if (e.code == "KeyD") {
-        velY = -30;
+        dispVector.y = velY * dt;
     }
     if (e.code == "KeyA") {
-        velY = +30;
+        dispVector.y = -velY * dt;
     }
 });
 
 document.addEventListener("keyup", (e) => {
-    velX = 0;
-    velY = 0;
+    if (e.code == "KeyW") {
+        dispVector.x = 0;
+    }
+    if (e.code == "KeyS") {
+        dispVector.x = 0;
+    }
+    if (e.code == "KeyD") {
+        dispVector.y = 0;
+    }
+    if (e.code == "KeyA") {
+        dispVector.y = 0;
+    }
 });
 
+document.addEventListener("mousemove", (e) => {
+    rot.z = e.movementX;
+    rot.y = e.movementY;
+})
+
 function update() {
-    myWolrd.style.transform = `translate3d(${dispVector.y}px, ${dispVector.z}px, ${dispVector.x}px)`;
-    dispVector.x += velX;
-    dispVector.y += velY;
+    pawn.x += dispVector.x; 
+    pawn.y += dispVector.y; 
+    pawn.rz += rot.z;
+    pawn.ry += rot.y;
+    rot.y = rot.z = 0;
+
+    myWolrd.style.transform = `translateZ(${600-0}px) RotateX(${-pawn.ry}deg) RotateY(${pawn.rz}deg) RotateZ(${pawn.rx}) translate3d(${-pawn.y}px, ${pawn.z}px, ${-pawn.x}px)`;
 }
 
-let myGame = setInterval(update, 100);
+let myGame = setInterval(update, 10);
