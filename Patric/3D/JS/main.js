@@ -1,4 +1,20 @@
+const DEG = Math.PI / 180;
 let myWolrd = document.getElementById("world");
+let container = document.getElementById("container");
+
+var lock = false;
+
+document.addEventListener("pointerlockchange", (e) => {
+    lock = !lock;
+});
+
+container.onclick = function () {
+    if(!lock) {
+        container.requestPointerLock();
+    }
+}
+
+
 
 let lvl_one_map = [
     { id: "floor", w: 1000, h: 1000, color: "grey", x: 0, y: 0, z: -100, rx: 0, ry: 90, rz: 0 },
@@ -85,11 +101,16 @@ document.addEventListener("mousemove", (e) => {
 })
 
 function update() {
-    pawn.x += dispVector.x; 
-    pawn.y += dispVector.y; 
-    pawn.rz += rot.z;
-    pawn.ry += rot.y;
-    rot.y = rot.z = 0;
+    // pawn.x += dispVector.x; 
+    // pawn.y += dispVector.y; 
+    if (lock) {
+        pawn.x += dispVector.x * Math.cos(pawn.rz * DEG) - dispVector.y * Math.sin(pawn.rz * DEG);
+        pawn.y += dispVector.x * Math.sin(pawn.rz * DEG) + dispVector.y * Math.cos(pawn.rz * DEG);
+
+        pawn.rz += rot.z;
+        pawn.ry += rot.y;
+        rot.y = rot.z = 0;
+    }    
 
     myWolrd.style.transform = `translateZ(${600-0}px) RotateX(${-pawn.ry}deg) RotateY(${pawn.rz}deg) RotateZ(${pawn.rx}) translate3d(${-pawn.y}px, ${pawn.z}px, ${-pawn.x}px)`;
 }
