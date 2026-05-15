@@ -73,10 +73,10 @@ document.addEventListener("keydown", (e) => {
         dispVector.x = velX * dt;
     }
     if (e.code == "KeyD") {
-        dispVector.y = velY * dt;
+        dispVector.y = -velY * dt;
     }
     if (e.code == "KeyA") {
-        dispVector.y = -velY * dt;
+        dispVector.y = +velY * dt;
     }
 });
 
@@ -108,11 +108,11 @@ function update() {
         pawn.y += dispVector.x * Math.sin(pawn.rz * DEG) + dispVector.y * Math.cos(pawn.rz * DEG);
 
         pawn.rz += rot.z;
-        pawn.ry += rot.y;
+        // pawn.ry += rot.y;
         rot.y = rot.z = 0;
     }    
 
-    myWolrd.style.transform = `translateZ(${600-0}px) RotateX(${-pawn.ry}deg) RotateY(${pawn.rz}deg) RotateZ(${pawn.rx}) translate3d(${-pawn.y}px, ${pawn.z}px, ${-pawn.x}px)`;
+    myWolrd.style.transform = `translateZ(${600-0}px) RotateX(${-pawn.ry}deg) RotateY(${pawn.rz}deg) RotateZ(${pawn.rx}) translate3d(${pawn.y}px, ${-pawn.z}px, ${-pawn.x}px)`;
 }
 
 let myGame = setInterval(update, 10);
