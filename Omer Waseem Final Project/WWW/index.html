@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Multiplayer Room — Omer Waseem</title>
+    <link rel="icon" href="data:,">
+    <link rel="stylesheet" href="CSS/style.css">
+</head>
+<body>
+    <h1>3D Multiplayer Room</h1>
+    <p class="hint-bar">
+        Use <strong>http://localhost:8080</strong> in two tabs (start <code>php server/server.php</code> first).
+        Each player enters a name, then moves with <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd>
+        and looks with the mouse after clicking the room.
+    </p>
+    <p id="status"></p>
+
+    <div id="container">
+        <div id="world"></div>
+    </div>
+
+    <div id="overlay">
+        <div class="panel">
+            <h2>Join the room</h2>
+            <p>Up to 2 players. You will appear as a colored square to the other player.</p>
+            <label for="player-name">Your name</label>
+            <input type="text" id="player-name" maxlength="24" placeholder="Your name" autocomplete="nickname">
+            <button type="button" id="join-btn">Join game</button>
+            <p id="error-msg"></p>
+        </div>
+    </div>
+
+    <script type="module" src="JS/main.js"></script>
+</body>
+</html>
